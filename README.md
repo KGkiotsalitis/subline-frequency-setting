@@ -10,9 +10,13 @@ Currently, this repository contains the following scripts:
 
 3. `SWS_14stops.py` script contains the stochastic frequency settings model that considers sublines.
 
-In addition, this repository contains the following data files:
+In addition, this repository contains the Data_input folder with the following data files:
 
-1. 
+1. `demand_14stops_leftskewed.txt` the average demand used in the deterministic models of section 5.4.1. of the paper.
+2. `demand_14stops_bothterminals.txt` the average demand used in the deterministic models of section 5.4.2. of the paper.
+3. `demand_14stops_skewedcenter.txt` the average demand used in the deterministic models of section 5.4.3. of the paper.
+4. `demand_14stops_constant.txt` the average demand used in the deterministic models of section 5.4.4. of the paper.
+5. `data_input_14stops.xlsx` the file with the 100 demand scenarios used in the stochastic model of sections 5.4.1.-5.4.4. of the paper. Sheet slt_fr corresponds to the left skewed demand scenario (section 5.4.1), sheet sbt_fr to the skewed demand in both terminals (section 5.4.2), sheet sc_fr to the skewed demand in the center (section 5.4.3), and sheet constant_fr to the balanced demand scenario (section 5.4.4).
 
 # Referencing
 
