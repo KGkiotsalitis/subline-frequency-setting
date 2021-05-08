@@ -40,12 +40,10 @@ for r in [2,3,4,5,6]:
     if r>1:
         for j in O:
             if (j[0]>8-r and j[0]<7+r) or (j[1]>8-r and j[1]<7+r):
-                #print(j)
                 D[r,j]=0
 for r in [7,8,9,10,11]:
     for j in O:
         if (j[0]>=21-r or j[0]<=r-6) or (j[1]>=21-r or j[1]<=-6+r):
-            #print(j)
             D[r,j]=0
 
 F_r = (0,1,2,3,4,5,6,8,10,12,15,20,30,60) #permitted frequencies
@@ -62,7 +60,7 @@ F_min=1.0 #minimum required frequency of a sub-line to be allowed to be operatio
 Tperiod=6 #time period of the planning phase;
 c=8 #minibus capacity;
 
-retrieve_data = pd.read_excel('Data_input/data_input_14stops.xlsx', sheet_name='sc_fr', index_col=0)
+retrieve_data = pd.read_excel('Data_input/data_input_14stops.xlsx', sheet_name='sbt_fr', index_col=0)
 df = pd.DataFrame(retrieve_data)
 D_old = {(i, j): df.at[i, j] for i in df.index for j in df.columns}
 for i in R:
@@ -102,10 +100,9 @@ l = model.addVars(Iset,R,S,vtype=gp.GRB.CONTINUOUS,lb=0,name='l')
 #Initialize variable probability_{i,r,s}
 probability = model.addVars(Iset,vtype=gp.GRB.BINARY,name='probability')
 #Initialize variable g_{i,r,s}
-g = model.addVars(Iset,R,S,vtype=gp.GRB.CONTINUOUS,lb=-10000000000,name='g')
-#g1 = model.addVars(Iset,R,S,vtype=gp.GRB.CONTINUOUS,lb=-10000000000,name='g1')
-g1 = model.addVars(Iset,R,S,vtype=gp.GRB.CONTINUOUS,lb=0,name='g1')
-
+g = model.addVars(Iset,R,S,vtype=gp.GRB.CONTINUOUS,lb=-10000000,name='g')
+sigma = model.addVars(Iset,R,S,vtype=gp.GRB.CONTINUOUS,lb=-10000000,name='sigma')
+y = model.addVars(Iset,R,S,vtype=gp.GRB.BINARY,name='y')
 Overall_passenger_waiting_times = model.addVar(vtype=gp.GRB.CONTINUOUS,name='Overall_passenger_waiting_times')
 Overall_vehicle_running_times = model.addVar(vtype=gp.GRB.CONTINUOUS,name='Overall_vehicle_running_times')
 Unserved_passengers = model.addVar(vtype=gp.GRB.CONTINUOUS,name='Unserved_passengers')
@@ -128,23 +125,28 @@ model.addConstrs(2*h[i1,i2,r,sy[0],sy[1]] <= z[i1,r]+u[i2,sy[0],sy[1]] for i1 in
 model.addConstrs(sum(sum(h[i1,i2,r,sy[0],sy[1]] for i2 in F if i2!=0) for i1 in F)==1 for r in R for sy in O)
 model.addConstrs(l[ist,r,s] == l[ist,r,s-1]+b[ist,r,s]-v[ist,r,s] for ist in Iset for r in R for s in S[1:]) #ignore the first stop
 model.addConstrs(l[ist,r,1] == b[ist,r,1] for ist in Iset for r in R)
-model.addConstr(LL_check == sum(l[ist,r,s] for ist in Iset for r in R for s in S if s!=S[-1]))
-model.addConstr(LL_check2 == sum(g1[ist,r,s] for ist in Iset for r in R for s in S if s!=S[-1]))
-model.addConstrs(g1[ist,r,s] + c*sum(f[i]*z[i,r] for i in F) >= l[ist,r,s] for ist in Iset for r in R for s in S if s!=S[-1])
-#g1 would be zero if the constraint is satisfied.
-model.addConstr(sum(g1[ist,r,s] for ist in Iset for r in R for s in S if s!=S[-1]) <= 0.01*sum(Bsy[ist,sy] for ist in Iset for sy in O))
+model.addConstrs(g[ist,r,s] + c*sum(f[i]*z[i,r] for i in F) == l[ist,r,s] for ist in Iset for r in R for s in S if s!=S[-1])
+
+model.addConstrs(sigma[ist,r,s] >= 0 for ist in Iset for r in R for s in S if s!=S[-1])
+model.addConstrs(sigma[ist,r,s] >= g[ist,r,s] for ist in Iset for r in R for s in S if s!=S[-1])
+model.addConstrs(sigma[ist,r,s] <= M*y[ist,r,s] for ist in Iset for r in R for s in S if s!=S[-1])
+model.addConstrs(sigma[ist,r,s] <= g[ist,r,s]+(1-y[ist,r,s])*M for ist in Iset for r in R for s in S if s!=S[-1])
+
+model.addConstr(sum(sigma[ist,r,s] for ist in Iset for r in R for s in S if s!=S[-1]) <= 0.01*sum(Bsy[ist,sy] for ist in Iset for sy in O))
 
 model.addConstr(Overall_vehicle_running_times == sum(Tr[r]*Tperiod* sum(f[i]*z[i,r] for i in F)  for r in R) )
 model.addConstr(Averange_passenger_waiting_time == 60*(1/sum(sum(Bsy[ist,sy] for sy in O) for ist in Iset))*sum(sum(Bsy[ist,sy]* sum(u[i,sy[0],sy[1]]*(1/(f[i]+1)) for i in F) for sy in O) for ist in Iset))
-model.addConstr(Unserved_passengers == sum(g1[ist,r,s] for ist in Iset for r in R for s in S if s!=S[-1]))
+model.addConstr(Unserved_passengers == sum(sigma[ist,r,s] for ist in Iset for r in R for s in S if s!=S[-1]))
 
 #Declare objective function
 obj = sum(x[r]*W1 + W2*Tr[r]*Tperiod* sum(f[i]*z[i,r] for i in F)  for r in R) + (1/len(Iset))*sum(sum(Bsy[ist,sy]* sum(u[i,sy[0],sy[1]]*(1/(f[i]+1)) for i in F) for sy in O) for ist in Iset)
 model.setObjective(obj,GRB.MINIMIZE)
 model.optimize()
-
+model.Params.NodefileStart = 0.1
 print('status',GRB.Status.OPTIMAL)
 #model.printQuality()
 for v in model.getVars():
-    if v.x > 0:
+    if v.x > 1e-5:
         print('%s %s %g' % (v.varName, '=', v.x))
+
+model.write('model.mps')
