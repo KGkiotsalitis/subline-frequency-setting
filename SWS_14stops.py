@@ -146,7 +146,7 @@ model.Params.NodefileStart = 0.1
 print('status',GRB.Status.OPTIMAL)
 #model.printQuality()
 for v in model.getVars():
-    if v.x > 1e-5:
+    if v.x > 0:
         print('%s %s %g' % (v.varName, '=', v.x))
 
 model.write('model.mps')
