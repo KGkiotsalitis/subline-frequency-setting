@@ -22,7 +22,7 @@ In addition, this repository contains the Data_input folder with the following d
 
 In case you use this code for scientific purposes, it is appreciated if you provide a citation to the paper:
 
-**K. Gkiotsalitis, M. Schmidt, and E. van der Hurk.** Subline Frequency Setting for autonomous minibusses under demand uncertainty, under revision.
+**K. Gkiotsalitis, M. Schmidt, and E. van der Hurk.** Subline Frequency Setting for autonomous minibusses under demand uncertainty, Transportation Research Part C: Emerging Technologies, https://doi.org/10.1016/j.trc.2021.103492.
 
 # License
 
